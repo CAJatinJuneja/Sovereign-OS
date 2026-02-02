@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { usePersistentStore } from '../hooks/usePersistentStore';
 import { Check, Smile } from 'lucide-react';
 

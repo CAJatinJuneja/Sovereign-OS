@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { usePersistentStore } from '../hooks/usePersistentStore';
 
 export default function IntegralAudit() {

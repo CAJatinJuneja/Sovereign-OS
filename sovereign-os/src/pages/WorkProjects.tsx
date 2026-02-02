@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { usePersistentStore } from '../hooks/usePersistentStore';
-import { Plus, Play, Pause, RotateCcw, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Play, Pause, RotateCcw, Trash2 } from 'lucide-react';
 
 type Task = { id: string; title: string; status: 'todo' | 'inProgress' | 'done' };
 
@@ -35,7 +35,7 @@ export default function WorkProjects() {
   };
 
   const deleteTask = (id: string) => setTasks(tasks.filter(t => t.id !== id));
-  const formatTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   return (
     <div className="animate-fadeIn">

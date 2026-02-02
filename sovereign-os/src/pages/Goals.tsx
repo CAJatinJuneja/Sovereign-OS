@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { usePersistentStore } from '../hooks/usePersistentStore';
-import { Plus, ChevronDown, ChevronRight, Trash2, Check } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, Check } from 'lucide-react';
 
 type Goal = { id: string; title: string; done: boolean; children?: Goal[] };
 

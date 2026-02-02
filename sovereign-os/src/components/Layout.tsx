@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { Home, Briefcase, BookOpen, DollarSign, Image, Target, Settings } from 'lucide-react';
 
