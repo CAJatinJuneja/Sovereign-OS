@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { usePersistentStore } from '../hooks/usePersistentStore';
-import { Plus, Trash2, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Trash2, IndianRupee, TrendingUp, TrendingDown } from 'lucide-react';
 
 type Txn = { id: string; date: string; desc: string; amount: number; type: 'income' | 'expense' };
+
+const INR = '₹';
 
 export default function Finances() {
   const [txns, setTxns] = usePersistentStore<Txn[]>('finance-txns', []);
@@ -22,7 +24,7 @@ export default function Finances() {
   return (
     <div className="animate-fadeIn">
       <h1 className="text-3xl font-bold mb-8 gradient-text flex items-center gap-3">
-        <DollarSign size={28} style={{ color: 'var(--accent-warm)' }} /> Finances
+        <IndianRupee size={28} style={{ color: 'var(--accent-warm)' }} /> Finances
       </h1>
 
       {/* Summary Cards */}
@@ -32,22 +34,22 @@ export default function Finances() {
             <TrendingUp size={16} style={{ color: 'var(--accent-sage)' }} />
             <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Income</span>
           </div>
-          <p className="text-2xl font-bold" style={{ color: 'var(--accent-sage)' }}>${income.toLocaleString()}</p>
+          <p className="text-2xl font-bold" style={{ color: 'var(--accent-sage)' }}>{INR}{income.toLocaleString('en-IN')}</p>
         </div>
         <div className="glass-card p-6">
           <div className="flex items-center gap-2 mb-2">
             <TrendingDown size={16} style={{ color: 'var(--accent-rose)' }} />
             <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Expenses</span>
           </div>
-          <p className="text-2xl font-bold" style={{ color: 'var(--accent-rose)' }}>${expense.toLocaleString()}</p>
+          <p className="text-2xl font-bold" style={{ color: 'var(--accent-rose)' }}>{INR}{expense.toLocaleString('en-IN')}</p>
         </div>
         <div className="glass-card p-6">
           <div className="flex items-center gap-2 mb-2">
-            <DollarSign size={16} style={{ color: net >= 0 ? 'var(--accent-sage)' : 'var(--accent-rose)' }} />
+            <IndianRupee size={16} style={{ color: net >= 0 ? 'var(--accent-sage)' : 'var(--accent-rose)' }} />
             <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Net Worth</span>
           </div>
           <p className="text-2xl font-bold" style={{ color: net >= 0 ? 'var(--accent-sage)' : 'var(--accent-rose)' }}>
-            ${net.toLocaleString()}
+            {INR}{net.toLocaleString('en-IN')}
           </p>
         </div>
       </div>
@@ -76,7 +78,7 @@ export default function Finances() {
             </div>
             <div className="flex items-center gap-4">
               <span style={{ color: t.type === 'income' ? 'var(--accent-sage)' : 'var(--accent-rose)' }}>
-                {t.type === 'income' ? '+' : '-'}${t.amount}
+                {t.type === 'income' ? '+' : '-'}{INR}{t.amount.toLocaleString('en-IN')}
               </span>
               <button onClick={() => setTxns(txns.filter(x => x.id !== t.id))}
                 style={{ color: 'var(--accent-rose)' }} className="hover:opacity-70 transition-opacity">
@@ -95,3 +97,4 @@ export default function Finances() {
     </div>
   );
 }
+

@@ -63,8 +63,11 @@ export default function Journal() {
   };
 
   const handleContentChange = (val: string) => {
-    update('content', val);
-    update('wordCount', val.trim() ? val.trim().split(/\s+/).length : 0);
+    setEntry(prev => ({
+      ...prev,
+      content: val,
+      wordCount: val.trim() ? val.trim().split(/\s+/).length : 0,
+    }));
   };
 
   // Auto-expand textarea
@@ -88,7 +91,7 @@ export default function Journal() {
   };
 
   const saveEntry = () => {
-    update('savedAt', new Date().toISOString());
+    setEntry(prev => ({ ...prev, savedAt: new Date().toISOString() }));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

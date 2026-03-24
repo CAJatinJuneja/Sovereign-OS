@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-export function usePersistentStore<T>(key: string, initialValue: T): [T, (value: T) => void] {
+type SetStateAction<T> = T | ((prev: T) => T);
+
+export function usePersistentStore<T>(key: string, initialValue: T): [T, (value: SetStateAction<T>) => void] {
   const [state, setState] = useState<T>(() => {
     try {
       const item = localStorage.getItem(key);
@@ -13,5 +15,12 @@ export function usePersistentStore<T>(key: string, initialValue: T): [T, (value:
     catch (e) { console.error('Failed to save:', e); }
   }, [key, state]);
 
-  return [state, setState];
+  const setStoreValue = useCallback((value: SetStateAction<T>) => {
+    setState(prev => {
+      const next = typeof value === 'function' ? (value as (prev: T) => T)(prev) : value;
+      return next;
+    });
+  }, []);
+
+  return [state, setStoreValue];
 }

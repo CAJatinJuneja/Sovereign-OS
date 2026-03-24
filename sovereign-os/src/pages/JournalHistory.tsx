@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp, ArrowLeft, Search } from 'lucide-react';
 import { MOOD_OPTIONS } from '../lib/journalPrompts';
@@ -12,12 +12,19 @@ interface StoredEntry {
   wordCount: number;
   todaysWin: string;
   gratitude: string[];
+  savedAt?: string;
 }
 
 export default function JournalHistory() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTag, setFilterTag] = useState('');
+
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Re-scan localStorage whenever we navigate to this page
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setRefreshKey(k => k + 1); }, []);
 
   const entries = useMemo(() => {
     const results: StoredEntry[] = [];
@@ -26,14 +33,15 @@ export default function JournalHistory() {
       if (key && key.startsWith('journal-')) {
         try {
           const data = JSON.parse(localStorage.getItem(key)!);
-          if (data && data.date && (data.content || data.mood)) {
+          if (data && data.date && data.savedAt && (data.content || data.mood)) {
             results.push(data);
           }
         } catch { /* skip */ }
       }
     }
     return results.sort((a, b) => b.date.localeCompare(a.date));
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   const filtered = entries.filter(e => {
     if (filterTag && !e.tags?.includes(filterTag)) return false;

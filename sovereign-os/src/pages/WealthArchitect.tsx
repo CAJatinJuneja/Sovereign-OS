@@ -1,18 +1,21 @@
 import { useState, useMemo } from 'react';
 import { usePersistentStore } from '../hooks/usePersistentStore';
-import { Landmark, Plus, Trash2, AlertCircle, Building2, Coins, ShoppingBag } from 'lucide-react';
+import { Landmark, Plus, Trash2, AlertCircle, Building2, Coins, ShoppingBag, IndianRupee } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 type Liability = { id: string; name: string; totalAmount: number; interestRate: number; emiAmount: number; remainingMonths: number; dueDay: number };
 type Asset = { id: string; name: string; value: number; type: 'fixed' | 'liquid' };
 type Expense = { id: string; date: string; desc: string; amount: number; category: string };
+type Txn = { id: string; date: string; desc: string; amount: number; type: 'income' | 'expense' };
 
 const CATEGORIES = ['Food', 'Travel', 'Medical', 'Shopping', 'Bills', 'Education', 'Other'];
+const INR = '₹';
 
 export default function WealthArchitect() {
   const [liabilities, setLiabilities] = usePersistentStore<Liability[]>('wealth-liabilities', []);
   const [assets, setAssets] = usePersistentStore<Asset[]>('wealth-assets', []);
   const [expenses, setExpenses] = usePersistentStore<Expense[]>('wealth-expenses', []);
+  const [financeTxns] = usePersistentStore<Txn[]>('finance-txns', []);
   const [tab, setTab] = useState<'overview' | 'liabilities' | 'assets' | 'expenses'>('overview');
 
   // Form states
@@ -27,9 +30,15 @@ export default function WealthArchitect() {
   const today = new Date().toISOString().split('T')[0];
   const totalAssets = assets.reduce((a, x) => a + x.value, 0);
   const totalLiabilities = liabilities.reduce((a, x) => a + (x.emiAmount * x.remainingMonths), 0);
-  const netWorth = totalAssets - totalLiabilities;
   const monthlyEmi = liabilities.reduce((a, x) => a + x.emiAmount, 0);
   const todayExpenses = expenses.filter(e => e.date === today).reduce((a, e) => a + e.amount, 0);
+
+  // Auto-populate from Finances
+  const financeIncome = financeTxns.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+  const financeExpense = financeTxns.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+  const financeNet = financeIncome - financeExpense;
+
+  const netWorth = totalAssets - totalLiabilities + financeNet;
 
   const fixedAssets = assets.filter(a => a.type === 'fixed').reduce((s, a) => s + a.value, 0);
   const liquidAssets = assets.filter(a => a.type === 'liquid').reduce((s, a) => s + a.value, 0);
@@ -37,9 +46,11 @@ export default function WealthArchitect() {
   const chartData = useMemo(() => [
     { name: 'Fixed Assets', value: fixedAssets, color: '#7c8aff' },
     { name: 'Liquid Assets', value: liquidAssets, color: '#6bcb8b' },
+    { name: 'Finance Income', value: financeIncome, color: '#a7b4ff' },
+    { name: 'Finance Expense', value: financeExpense, color: '#f4a261' },
     { name: 'Liabilities', value: totalLiabilities, color: '#f07088' },
-    { name: 'Monthly EMI', value: monthlyEmi, color: '#f4a261' },
-  ], [fixedAssets, liquidAssets, totalLiabilities, monthlyEmi]);
+    { name: 'Monthly EMI', value: monthlyEmi, color: '#e8956d' },
+  ], [fixedAssets, liquidAssets, financeIncome, financeExpense, totalLiabilities, monthlyEmi]);
 
   const upcomingBills = useMemo(() => {
     const currentDay = new Date().getDate();
@@ -79,19 +90,21 @@ export default function WealthArchitect() {
         <div className="section-label">Live Net Worth</div>
         <div className="flex items-end gap-4">
           <p className="text-4xl font-bold" style={{ color: netWorth >= 0 ? 'var(--accent-sage)' : 'var(--accent-rose)' }}>
-            ${Math.abs(netWorth).toLocaleString()}
+            {INR}{Math.abs(netWorth).toLocaleString('en-IN')}
           </p>
           <span className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>
             ({netWorth >= 0 ? 'Positive' : 'Negative'})
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-4 mt-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
           <div><span className="text-xs" style={{ color: 'var(--text-muted)' }}>Total Assets</span>
-            <p className="text-lg font-semibold" style={{ color: 'var(--accent-sage)' }}>${totalAssets.toLocaleString()}</p></div>
+            <p className="text-lg font-semibold" style={{ color: 'var(--accent-sage)' }}>{INR}{totalAssets.toLocaleString('en-IN')}</p></div>
           <div><span className="text-xs" style={{ color: 'var(--text-muted)' }}>Total Liabilities</span>
-            <p className="text-lg font-semibold" style={{ color: 'var(--accent-rose)' }}>${totalLiabilities.toLocaleString()}</p></div>
+            <p className="text-lg font-semibold" style={{ color: 'var(--accent-rose)' }}>{INR}{totalLiabilities.toLocaleString('en-IN')}</p></div>
           <div><span className="text-xs" style={{ color: 'var(--text-muted)' }}>Monthly EMI</span>
-            <p className="text-lg font-semibold" style={{ color: 'var(--accent-warm)' }}>${monthlyEmi.toLocaleString()}</p></div>
+            <p className="text-lg font-semibold" style={{ color: 'var(--accent-warm)' }}>{INR}{monthlyEmi.toLocaleString('en-IN')}</p></div>
+          <div><span className="text-xs" style={{ color: 'var(--text-muted)' }}>Finance Net</span>
+            <p className="text-lg font-semibold" style={{ color: financeNet >= 0 ? 'var(--accent-sage)' : 'var(--accent-rose)' }}>{INR}{financeNet.toLocaleString('en-IN')}</p></div>
         </div>
       </div>
 
@@ -112,9 +125,10 @@ export default function WealthArchitect() {
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="name" tick={{ fill: '#8b95a9', fontSize: 12 }} />
+                <XAxis dataKey="name" tick={{ fill: '#8b95a9', fontSize: 11 }} angle={-15} textAnchor="end" height={50} />
                 <YAxis tick={{ fill: '#8b95a9', fontSize: 12 }} />
-                <Tooltip contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: '#e8ecf4' }} />
+                <Tooltip contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: '#e8ecf4' }}
+                  formatter={(value: number | undefined) => [`${INR}${(value ?? 0).toLocaleString('en-IN')}`, '']} />
                 <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                   {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Bar>
@@ -138,7 +152,7 @@ export default function WealthArchitect() {
                         Due in {b.daysUntil} days (Day {b.dueDay})
                       </p>
                     </div>
-                    <span className="font-semibold" style={{ color: 'var(--accent-warm)' }}>${b.emiAmount.toLocaleString()}</span>
+                    <span className="font-semibold" style={{ color: 'var(--accent-warm)' }}>{INR}{b.emiAmount.toLocaleString('en-IN')}</span>
                   </div>
                 ))}
               </div>
@@ -147,11 +161,45 @@ export default function WealthArchitect() {
             )}
           </div>
 
+          {/* Finances Integration Card */}
+          <div className="glass-card p-6">
+            <div className="section-label flex items-center gap-2">
+              <IndianRupee size={12} /> From Finances Schedule
+            </div>
+            {financeTxns.length > 0 ? (
+              <div className="space-y-3 mt-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Total Income</span>
+                  <span className="font-semibold" style={{ color: 'var(--accent-sage)' }}>{INR}{financeIncome.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Total Expenses</span>
+                  <span className="font-semibold" style={{ color: 'var(--accent-rose)' }}>{INR}{financeExpense.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="pt-2 mt-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Net from Finances</span>
+                    <span className="text-lg font-bold" style={{ color: financeNet >= 0 ? 'var(--accent-sage)' : 'var(--accent-rose)' }}>
+                      {INR}{financeNet.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+                  Auto-synced from {financeTxns.length} transaction{financeTxns.length !== 1 ? 's' : ''} in Finances
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm mt-3" style={{ color: 'var(--text-muted)' }}>
+                No finance data yet. Add transactions in the Finances module to see them here.
+              </p>
+            )}
+          </div>
+
           {/* Today's Spending */}
-          <div className="glass-card p-6 lg:col-span-2">
+          <div className="glass-card p-6">
             <div className="flex justify-between items-center mb-4">
               <div className="section-label mb-0">Today's Spending</div>
-              <span className="text-lg font-bold" style={{ color: 'var(--accent-warm)' }}>${todayExpenses.toLocaleString()}</span>
+              <span className="text-lg font-bold" style={{ color: 'var(--accent-warm)' }}>{INR}{todayExpenses.toLocaleString('en-IN')}</span>
             </div>
             <div className="flex flex-wrap gap-3 mb-4">
               <input value={eDesc} onChange={e => setEDesc(e.target.value)} placeholder="Description" className="input-glass flex-1 min-w-[180px]" />
@@ -171,7 +219,7 @@ export default function WealthArchitect() {
                     <span className="text-sm">{e.desc}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span style={{ color: 'var(--accent-rose)' }}>-${e.amount}</span>
+                    <span style={{ color: 'var(--accent-rose)' }}>-{INR}{e.amount.toLocaleString('en-IN')}</span>
                     <button onClick={() => setExpenses(expenses.filter(x => x.id !== e.id))}
                       style={{ color: 'var(--accent-rose)' }} className="hover:opacity-70"><Trash2 size={14}/></button>
                   </div>
@@ -203,9 +251,9 @@ export default function WealthArchitect() {
                   <div>
                     <h3 className="font-semibold text-lg">{l.name}</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1 mt-2 text-sm">
-                      <div><span style={{ color: 'var(--text-muted)' }}>Total:</span> ${l.totalAmount.toLocaleString()}</div>
+                      <div><span style={{ color: 'var(--text-muted)' }}>Total:</span> {INR}{l.totalAmount.toLocaleString('en-IN')}</div>
                       <div><span style={{ color: 'var(--text-muted)' }}>Rate:</span> {l.interestRate}%</div>
-                      <div><span style={{ color: 'var(--text-muted)' }}>EMI:</span> ${l.emiAmount.toLocaleString()}</div>
+                      <div><span style={{ color: 'var(--text-muted)' }}>EMI:</span> {INR}{l.emiAmount.toLocaleString('en-IN')}</div>
                       <div><span style={{ color: 'var(--text-muted)' }}>Remaining:</span> {l.remainingMonths} mo</div>
                     </div>
                   </div>
@@ -240,7 +288,7 @@ export default function WealthArchitect() {
                   <div key={a.id} className="glass-card p-4 flex justify-between items-center">
                     <span>{a.name}</span>
                     <div className="flex items-center gap-3">
-                      <span className="font-semibold" style={{ color: 'var(--accent-sage)' }}>${a.value.toLocaleString()}</span>
+                      <span className="font-semibold" style={{ color: 'var(--accent-sage)' }}>{INR}{a.value.toLocaleString('en-IN')}</span>
                       <button onClick={() => setAssets(assets.filter(x => x.id !== a.id))}
                         style={{ color: 'var(--accent-rose)' }}><Trash2 size={14}/></button>
                     </div>
@@ -256,7 +304,7 @@ export default function WealthArchitect() {
                   <div key={a.id} className="glass-card p-4 flex justify-between items-center">
                     <span>{a.name}</span>
                     <div className="flex items-center gap-3">
-                      <span className="font-semibold" style={{ color: 'var(--accent-sage)' }}>${a.value.toLocaleString()}</span>
+                      <span className="font-semibold" style={{ color: 'var(--accent-sage)' }}>{INR}{a.value.toLocaleString('en-IN')}</span>
                       <button onClick={() => setAssets(assets.filter(x => x.id !== a.id))}
                         style={{ color: 'var(--accent-rose)' }}><Trash2 size={14}/></button>
                     </div>
@@ -293,7 +341,7 @@ export default function WealthArchitect() {
                   <span>{e.desc}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span style={{ color: 'var(--accent-rose)' }}>-${e.amount}</span>
+                  <span style={{ color: 'var(--accent-rose)' }}>-{INR}{e.amount.toLocaleString('en-IN')}</span>
                   <button onClick={() => setExpenses(expenses.filter(x => x.id !== e.id))}
                     style={{ color: 'var(--accent-rose)' }} className="hover:opacity-70"><Trash2 size={14}/></button>
                 </div>
