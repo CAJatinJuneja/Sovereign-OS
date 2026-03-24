@@ -36,12 +36,15 @@ const emptyThoughtRecord: ThoughtRecord = {
 
 export default function Journal() {
   const today = new Date().toISOString().split('T')[0];
-  const [entry, setEntry] = usePersistentStore<JournalEntry>(`journal-${today}`, {
+
+  const emptyEntry: JournalEntry = {
     date: today, mood: 0, emotions: [], energy: 5, selectedPrompt: '',
     content: '', thoughtRecord: { ...emptyThoughtRecord },
     gratitude: ['', '', ''], todaysWin: '', goalReflection: '',
     tags: [], wordCount: 0, savedAt: '',
-  });
+  };
+
+  const [entry, setEntry] = usePersistentStore<JournalEntry>(`journal-draft`, emptyEntry);
 
   const [activeCategory, setActiveCategory] = useState<PromptCategory | 'All'>('All');
   const [showThoughtRecord, setShowThoughtRecord] = useState(false);
@@ -50,7 +53,7 @@ export default function Journal() {
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
   const update = (key: string, value: any) => {
-    setEntry({ ...entry, [key]: value });
+    setEntry(prev => ({ ...prev, [key]: value }));
   };
 
   const filteredPrompts = activeCategory === 'All'
@@ -91,7 +94,23 @@ export default function Journal() {
   };
 
   const saveEntry = () => {
-    setEntry(prev => ({ ...prev, savedAt: new Date().toISOString() }));
+    // Save the completed entry to journal history with a unique key
+    const savedEntry = {
+      ...entry,
+      date: today,
+      savedAt: new Date().toISOString(),
+    };
+    const historyKey = `journal-${today}-${Date.now()}`;
+    localStorage.setItem(historyKey, JSON.stringify(savedEntry));
+
+    // Reset the draft to blank for new entry
+    setEntry({
+      date: today, mood: 0, emotions: [], energy: 5, selectedPrompt: '',
+      content: '', thoughtRecord: { ...emptyThoughtRecord },
+      gratitude: ['', '', ''], todaysWin: '', goalReflection: '',
+      tags: [], wordCount: 0, savedAt: '',
+    });
+
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

@@ -96,13 +96,17 @@ export default function WealthArchitect() {
             ({netWorth >= 0 ? 'Positive' : 'Negative'})
           </span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-4">
           <div><span className="text-xs" style={{ color: 'var(--text-muted)' }}>Total Assets</span>
             <p className="text-lg font-semibold" style={{ color: 'var(--accent-sage)' }}>{INR}{totalAssets.toLocaleString('en-IN')}</p></div>
           <div><span className="text-xs" style={{ color: 'var(--text-muted)' }}>Total Liabilities</span>
             <p className="text-lg font-semibold" style={{ color: 'var(--accent-rose)' }}>{INR}{totalLiabilities.toLocaleString('en-IN')}</p></div>
           <div><span className="text-xs" style={{ color: 'var(--text-muted)' }}>Monthly EMI</span>
             <p className="text-lg font-semibold" style={{ color: 'var(--accent-warm)' }}>{INR}{monthlyEmi.toLocaleString('en-IN')}</p></div>
+          <div><span className="text-xs" style={{ color: 'var(--text-muted)' }}>Finance Income</span>
+            <p className="text-lg font-semibold" style={{ color: 'var(--accent-sage)' }}>{INR}{financeIncome.toLocaleString('en-IN')}</p></div>
+          <div><span className="text-xs" style={{ color: 'var(--text-muted)' }}>Finance Expenses</span>
+            <p className="text-lg font-semibold" style={{ color: 'var(--accent-rose)' }}>{INR}{financeExpense.toLocaleString('en-IN')}</p></div>
           <div><span className="text-xs" style={{ color: 'var(--text-muted)' }}>Finance Net</span>
             <p className="text-lg font-semibold" style={{ color: financeNet >= 0 ? 'var(--accent-sage)' : 'var(--accent-rose)' }}>{INR}{financeNet.toLocaleString('en-IN')}</p></div>
         </div>

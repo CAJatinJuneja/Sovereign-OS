@@ -274,9 +274,15 @@ export default function SuccessAccelerator() {
         <button onClick={() => goToStep(Math.max(0, step - 1))} className="btn-ghost flex items-center gap-1" disabled={step === 0}>
           <ChevronLeft size={16}/> Previous
         </button>
-        <button onClick={() => goToStep(Math.min(6, step + 1))} className="btn-primary flex items-center gap-1" disabled={step === 6}>
-          Next <ChevronRight size={16}/>
-        </button>
+        {step === 6 ? (
+          <button onClick={() => setActiveGoalId(null)} className="btn-primary flex items-center gap-2">
+            <Check size={16}/> Finish
+          </button>
+        ) : (
+          <button onClick={() => goToStep(Math.min(6, step + 1))} className="btn-primary flex items-center gap-1">
+            Next <ChevronRight size={16}/>
+          </button>
+        )}
       </div>
     </div>
   );

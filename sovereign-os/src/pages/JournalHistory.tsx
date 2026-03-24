@@ -30,7 +30,7 @@ export default function JournalHistory() {
     const results: StoredEntry[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('journal-')) {
+      if (key && key.startsWith('journal-') && key !== 'journal-draft') {
         try {
           const data = JSON.parse(localStorage.getItem(key)!);
           if (data && data.date && data.savedAt && (data.content || data.mood)) {
@@ -39,7 +39,7 @@ export default function JournalHistory() {
         } catch { /* skip */ }
       }
     }
-    return results.sort((a, b) => b.date.localeCompare(a.date));
+    return results.sort((a, b) => (b.savedAt || b.date).localeCompare(a.savedAt || a.date));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
