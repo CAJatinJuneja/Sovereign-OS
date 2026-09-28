@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { Home, PenLine, Briefcase, BookOpen, DollarSign, Image, Target, Settings, Clock, Sparkles, Rocket, Landmark } from 'lucide-react';
+import { Home, PenLine, Briefcase, BookOpen, DollarSign, Image, Target, Settings, Clock, Sparkles, Rocket, Landmark, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const navItems = [
   { to: '/', icon: Home, label: 'Dashboard' },
@@ -37,6 +38,8 @@ function navClass(isActive: boolean) {
 }
 
 export default function Layout() {
+  const { session, signOut } = useAuth();
+
   return (
     <div className="min-h-screen flex">
       <aside className="w-64 fixed h-full flex flex-col justify-between"
@@ -64,9 +67,19 @@ export default function Layout() {
             ))}
           </nav>
         </div>
-        <div className="px-6 pb-6 flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-          <Clock size={13} />
-          <span>{formatDate()}</span>
+        <div className="px-6 pb-6 space-y-2">
+          <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+            <Clock size={13} />
+            <span>{formatDate()}</span>
+          </div>
+          {session?.user?.email && (
+            <div className="flex items-center justify-between gap-2 text-xs pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>
+              <span className="truncate">{session.user.email}</span>
+              <button onClick={signOut} className="p-1 rounded hover:opacity-70 shrink-0" title="Sign out">
+                <LogOut size={14} />
+              </button>
+            </div>
+          )}
         </div>
       </aside>
       <main className="ml-64 flex-1 p-8 min-h-screen">

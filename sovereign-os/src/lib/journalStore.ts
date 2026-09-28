@@ -1,3 +1,5 @@
+import { cloudStorage } from './cloudStorage';
+
 export interface StoredJournalEntry {
   date: string;
   mood: number;
@@ -13,11 +15,11 @@ export interface StoredJournalEntry {
 
 export function getAllJournalEntries(): StoredJournalEntry[] {
   const results: StoredJournalEntry[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
+  for (let i = 0; i < cloudStorage.length; i++) {
+    const key = cloudStorage.key(i);
     if (key && key.startsWith('journal-') && key !== 'journal-draft') {
       try {
-        const data = JSON.parse(localStorage.getItem(key)!);
+        const data = JSON.parse(cloudStorage.getItem(key)!);
         if (data && data.date && data.savedAt && (data.content || data.mood)) {
           results.push(data);
         }

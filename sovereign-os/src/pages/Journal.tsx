@@ -4,6 +4,7 @@ import { JOURNAL_PROMPTS, PROMPT_CATEGORIES, EMOTIONS, MOOD_OPTIONS, JOURNAL_TAG
 import { getJournalEntriesForDate, type StoredJournalEntry } from '../lib/journalStore';
 import { getTimelineForDate, formatHour } from '../lib/timelineStore';
 import { todayKey } from '../lib/date';
+import { cloudStorage } from '../lib/cloudStorage';
 import { Link } from 'react-router-dom';
 import { Shuffle, ChevronDown, ChevronUp, Sparkles, Clock, Save, Heart, Target, Tag, BookOpen, CalendarSearch } from 'lucide-react';
 
@@ -183,7 +184,7 @@ export default function Journal() {
       savedAt: new Date().toISOString(),
     };
     const historyKey = `journal-${today}-${Date.now()}`;
-    localStorage.setItem(historyKey, JSON.stringify(savedEntry));
+    cloudStorage.setItem(historyKey, JSON.stringify(savedEntry));
 
     // Reset the draft to blank for new entry
     setEntry({

@@ -2,6 +2,7 @@ import React from 'react';
 import { Download, Upload, Trash2, Settings as SettingsIcon, Shield } from 'lucide-react';
 import { imageStore } from '../lib/imageStore';
 import { todayKey } from '../lib/date';
+import { cloudStorage } from '../lib/cloudStorage';
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -20,9 +21,9 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
 export default function Settings() {
   const exportData = async () => {
     const data: Record<string, any> = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) data[key] = JSON.parse(localStorage.getItem(key)!);
+    for (let i = 0; i < cloudStorage.length; i++) {
+      const key = cloudStorage.key(i);
+      if (key) data[key] = JSON.parse(cloudStorage.getItem(key)!);
     }
 
     const imageIds = await imageStore.getAllKeys();
@@ -50,7 +51,7 @@ export default function Settings() {
       try {
         const data = JSON.parse(reader.result as string);
         const { __visionImages, ...rest } = data;
-        Object.entries(rest).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
+        Object.entries(rest).forEach(([k, v]) => cloudStorage.setItem(k, JSON.stringify(v)));
 
         if (Array.isArray(__visionImages)) {
           for (const img of __visionImages) {
@@ -68,7 +69,7 @@ export default function Settings() {
 
   const clearAllData = async () => {
     if (confirm('Are you sure? This will delete ALL your data!')) {
-      localStorage.clear();
+      cloudStorage.clear();
       await imageStore.clearAll();
       window.location.reload();
     }
@@ -100,7 +101,7 @@ export default function Settings() {
         </div>
         <div className="pt-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            All data is stored locally in your browser. Export regularly to backup.
+            Your data syncs to your account and follows you across devices. Export regularly for an offline backup.
           </p>
           <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
             Sovereign OS v1.0 &mdash; Your mind, your data, your sovereignty.

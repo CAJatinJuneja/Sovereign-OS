@@ -1,3 +1,5 @@
+import { cloudStorage } from './cloudStorage';
+
 export type ActivityTag = 'Office' | 'Self Development' | 'Chores' | 'Study Targets' | 'Rest' | 'Social' | 'Other';
 
 export const ACTIVITY_TAGS: ActivityTag[] = [
@@ -38,7 +40,7 @@ export function formatHour(hour: number): string {
 
 export function getTimelineForDate(date: string): HourEntry[] | null {
   try {
-    const raw = localStorage.getItem('timeline-' + date);
+    const raw = cloudStorage.getItem('timeline-' + date);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
