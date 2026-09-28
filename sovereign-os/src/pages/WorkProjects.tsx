@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { usePersistentStore } from '../hooks/usePersistentStore';
-import { Plus, Play, Pause, RotateCcw, Trash2, ArrowRight, Briefcase } from 'lucide-react';
+import TaskBoard from '../components/TaskBoard';
+import { Play, Pause, RotateCcw, Briefcase, Sparkles, Home, GraduationCap, FolderKanban } from 'lucide-react';
 
-type Task = { id: string; title: string; status: 'todo' | 'inProgress' | 'done' };
-
-const columns = [
-  { id: 'todo', title: 'To Do', accent: 'var(--accent-primary)' },
-  { id: 'inProgress', title: 'In Progress', accent: 'var(--accent-warm)' },
-  { id: 'done', title: 'Done', accent: 'var(--accent-sage)' },
-];
+const CATEGORIES = [
+  { key: 'office', label: 'Office', storageKey: 'work-tasks-office', icon: Briefcase },
+  { key: 'self-development', label: 'Self Development', storageKey: 'work-tasks-self-development', icon: Sparkles },
+  { key: 'chores', label: 'Chores', storageKey: 'work-tasks-chores', icon: Home },
+  { key: 'study-targets', label: 'Study Targets', storageKey: 'work-tasks-study-targets', icon: GraduationCap },
+  { key: 'other', label: 'Other Projects', storageKey: 'work-tasks-other', icon: FolderKanban },
+] as const;
 
 export default function WorkProjects() {
-  const [tasks, setTasks] = usePersistentStore<Task[]>('kanban-tasks', []);
-  const [newTask, setNewTask] = useState('');
+  const [activeTab, setActiveTab] = usePersistentStore<string>('work-active-tab', 'office');
   const [timer, setTimer] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
 
@@ -24,22 +24,13 @@ export default function WorkProjects() {
     return () => clearInterval(interval);
   }, [isRunning]);
 
-  const addTask = () => {
-    if (!newTask.trim()) return;
-    setTasks([...tasks, { id: Date.now().toString(), title: newTask, status: 'todo' }]);
-    setNewTask('');
-  };
-
-  const moveTask = (id: string, status: Task['status']) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, status } : t));
-  };
-
-  const deleteTask = (id: string) => setTasks(tasks.filter(t => t.id !== id));
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = String(s % 60).padStart(2, '0');
     return m + ':' + sec;
   };
+
+  const active = CATEGORIES.find(c => c.key === activeTab) || CATEGORIES[0];
 
   return (
     <div className="animate-fadeIn">
@@ -61,54 +52,28 @@ export default function WorkProjects() {
         </button>
       </div>
 
-      {/* New Task Input */}
-      <div className="flex gap-4 mb-8">
-        <input
-          value={newTask}
-          onChange={(e) => setNewTask(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && addTask()}
-          placeholder="Add new task..."
-          className="input-glass flex-1"
-        />
-        <button onClick={addTask} className="btn-primary flex items-center gap-2">
-          <Plus size={20} /> Add
-        </button>
+      {/* Category Tabs */}
+      <div className="flex flex-wrap gap-2 mb-8">
+        {CATEGORIES.map(cat => {
+          const Icon = cat.icon;
+          const isActive = cat.key === active.key;
+          return (
+            <button
+              key={cat.key}
+              onClick={() => setActiveTab(cat.key)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-all duration-200"
+              style={isActive
+                ? { background: 'rgba(124,138,255,0.12)', color: 'var(--accent-primary)', fontWeight: 500 }
+                : { color: 'var(--text-secondary)' }
+              }
+            >
+              <Icon size={16} /> {cat.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Kanban Board */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {columns.map(col => (
-          <div key={col.id} className="glass-card p-4">
-            <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full" style={{ background: col.accent }} />
-              {col.title}
-              <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>
-                {tasks.filter(t => t.status === col.id).length}
-              </span>
-            </h3>
-            <div className="space-y-3">
-              {tasks.filter(t => t.status === col.id).map(task => (
-                <div key={task.id} className="rounded-xl p-3 flex items-center justify-between group transition-colors"
-                  style={{ background: 'var(--bg-card-hover)' }}>
-                  <span className="text-sm">{task.title}</span>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {col.id !== 'done' && (
-                      <button onClick={() => moveTask(task.id, col.id === 'todo' ? 'inProgress' : 'done')}
-                        className="p-1 rounded transition-colors" style={{ color: 'var(--accent-primary)' }}>
-                        <ArrowRight size={14} />
-                      </button>
-                    )}
-                    <button onClick={() => deleteTask(task.id)}
-                      className="p-1 rounded transition-colors" style={{ color: 'var(--accent-rose)' }}>
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      <TaskBoard key={active.storageKey} storageKey={active.storageKey} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { usePersistentStore } from '../hooks/usePersistentStore';
 import { Rocket, Plus, Trash2, Check, ChevronLeft, ChevronRight, Target, Calendar, Heart, AlertTriangle, BookOpen, Users, ListChecks } from 'lucide-react';
+import { todayKey } from '../lib/date';
 
 type GoalPlan = {
   id: string;
@@ -45,7 +46,7 @@ export default function SuccessAccelerator() {
       id: Date.now().toString(), title: '', definition: '', deadline: '',
       subDeadlines: [], whyBenefits: [], obstaclesInternal: [], obstaclesExternal: [],
       skillGaps: [], people: [], masterPlan: [], currentStep: 0,
-      createdAt: new Date().toISOString().split('T')[0],
+      createdAt: todayKey(),
     };
     setGoals([...goals, g]);
     setActiveGoalId(g.id);
@@ -83,7 +84,7 @@ export default function SuccessAccelerator() {
 
   const goToStep = (step: number) => {
     if (!activeGoal) return;
-    if (step === 6) {
+    if (step === 6 && activeGoal.masterPlan.length === 0) {
       const plan = generateMasterPlan(activeGoal);
       updateGoal(activeGoal.id, { currentStep: step, masterPlan: plan });
     } else {

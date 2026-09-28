@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { usePersistentStore } from '../hooks/usePersistentStore';
 import { JOURNAL_PROMPTS, PROMPT_CATEGORIES, EMOTIONS, MOOD_OPTIONS, JOURNAL_TAGS, type PromptCategory } from '../lib/journalPrompts';
+import { getJournalEntriesForDate, type StoredJournalEntry } from '../lib/journalStore';
+import { getTimelineForDate, formatHour } from '../lib/timelineStore';
+import { todayKey } from '../lib/date';
 import { Link } from 'react-router-dom';
-import { Shuffle, ChevronDown, ChevronUp, Sparkles, Clock, Save, Heart, Target, Tag, BookOpen } from 'lucide-react';
+import { Shuffle, ChevronDown, ChevronUp, Sparkles, Clock, Save, Heart, Target, Tag, BookOpen, CalendarSearch } from 'lucide-react';
 
 interface ThoughtRecord {
   situation: string;
@@ -34,8 +37,87 @@ const emptyThoughtRecord: ThoughtRecord = {
   evidenceFor: '', evidenceAgainst: '', balancedThought: '',
 };
 
+function RecallADay() {
+  const [recallDate, setRecallDate] = useState('');
+  const entries: StoredJournalEntry[] = recallDate ? getJournalEntriesForDate(recallDate) : [];
+  const timeline = recallDate ? getTimelineForDate(recallDate) : null;
+  const timelineHighlights = timeline?.filter(h => h.plannedNote.trim() || h.actualNote.trim()) || [];
+
+  const getMoodEmoji = (mood: number) => MOOD_OPTIONS.find(m => m.value === mood)?.emoji || '';
+
+  return (
+    <section className="glass-card">
+      <div className="section-label flex items-center gap-2">
+        <CalendarSearch size={12} /> Recall a Day
+      </div>
+      <input
+        type="date"
+        value={recallDate}
+        onChange={e => setRecallDate(e.target.value)}
+        className="input-glass mt-2"
+        max={todayKey()}
+      />
+
+      {recallDate && entries.length === 0 && timelineHighlights.length === 0 && (
+        <p className="text-sm mt-4" style={{ color: 'var(--text-muted)' }}>No entries found for this date.</p>
+      )}
+
+      {entries.map((entry, i) => (
+        <div key={i} className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          <div className="flex items-center gap-3">
+            {entry.mood > 0 && <span className="text-xl">{getMoodEmoji(entry.mood)}</span>}
+            {entry.wordCount > 0 && (
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{entry.wordCount} words</span>
+            )}
+          </div>
+          {entry.emotions?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {entry.emotions.map(em => <span key={em} className="emotion-chip active text-xs">{em}</span>)}
+            </div>
+          )}
+          {entry.content && (
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ fontFamily: 'Lora, serif', color: 'var(--text-primary)' }}>
+              {entry.content}
+            </p>
+          )}
+          {entry.gratitude?.some(g => g) && (
+            <div className="mt-3">
+              <span className="section-label" style={{ color: 'var(--accent-warm)' }}>Gratitude</span>
+              <ul className="list-disc list-inside text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                {entry.gratitude.filter(g => g).map((g, gi) => <li key={gi}>{g}</li>)}
+              </ul>
+            </div>
+          )}
+          {entry.todaysWin && (
+            <div className="mt-3 text-sm">
+              <span className="section-label" style={{ color: 'var(--accent-warm)' }}>Win</span>
+              <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>{entry.todaysWin}</p>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {timelineHighlights.length > 0 && (
+        <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          <span className="section-label">Timeline</span>
+          <ul className="text-sm mt-1 space-y-1.5" style={{ color: 'var(--text-secondary)' }}>
+            {timelineHighlights.map(h => (
+              <li key={h.hour}>
+                <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{formatHour(h.hour)}</span>
+                {h.mood > 0 && <span className="ml-1">{getMoodEmoji(h.mood)}</span>}
+                {h.plannedNote && <span> — <span className="text-xs">Planned ({h.plannedTag}):</span> {h.plannedNote}</span>}
+                {h.actualNote && <span> — <span className="text-xs">Actual ({h.actualTag}):</span> {h.actualNote}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function Journal() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayKey();
 
   const emptyEntry: JournalEntry = {
     date: today, mood: 0, emotions: [], energy: 5, selectedPrompt: '',
@@ -134,6 +216,25 @@ export default function Journal() {
           </button>
         </div>
       </div>
+
+      {/* ── FREE-FORM EDITOR ── */}
+      <section className="journal-card">
+        <div className="section-label flex items-center gap-2">
+          <span style={{ fontFamily: 'Lora, serif', fontSize: '0.75rem', fontWeight: 400 }}>&#9998;</span> Write Freely
+        </div>
+        <textarea
+          ref={editorRef}
+          value={entry.content}
+          onChange={e => handleContentChange(e.target.value)}
+          placeholder="Write freely... this is your safe space. Let your thoughts flow without judgment."
+          className="journal-editor mt-2"
+          rows={8}
+        />
+        <div className="flex justify-between items-center mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+          <span>{entry.wordCount} words</span>
+          {entry.savedAt && <span>Last saved {new Date(entry.savedAt).toLocaleTimeString()}</span>}
+        </div>
+      </section>
 
       {/* ── MOOD CHECK-IN ── */}
       <section className="journal-card animate-breathe">
@@ -244,25 +345,6 @@ export default function Journal() {
           </p>
         </div>
       )}
-
-      {/* ── FREE-FORM EDITOR ── */}
-      <section className="journal-card">
-        <div className="section-label flex items-center gap-2">
-          <span style={{ fontFamily: 'Lora, serif', fontSize: '0.75rem', fontWeight: 400 }}>&#9998;</span> Write Freely
-        </div>
-        <textarea
-          ref={editorRef}
-          value={entry.content}
-          onChange={e => handleContentChange(e.target.value)}
-          placeholder="Write freely... this is your safe space. Let your thoughts flow without judgment."
-          className="journal-editor mt-2"
-          rows={8}
-        />
-        <div className="flex justify-between items-center mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-          <span>{entry.wordCount} words</span>
-          {entry.savedAt && <span>Last saved {new Date(entry.savedAt).toLocaleTimeString()}</span>}
-        </div>
-      </section>
 
       {/* ── CBT THOUGHT RECORD ── */}
       <section className="thought-record">
@@ -406,10 +488,15 @@ export default function Journal() {
       </section>
 
       {/* Save button bottom */}
-      <div className="flex justify-end pb-8">
+      <div className="flex justify-end">
         <button onClick={saveEntry} className="btn-primary flex items-center gap-2">
           <Save size={16} /> {saved ? 'Saved!' : 'Save Entry'}
         </button>
+      </div>
+
+      {/* ── RECALL A DAY ── */}
+      <div className="pb-8">
+        <RecallADay />
       </div>
     </div>
   );

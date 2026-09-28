@@ -5,6 +5,7 @@ const navItems = [
   { to: '/', icon: Home, label: 'Dashboard' },
   { to: '/journal', icon: PenLine, label: 'Journal' },
   { to: '/work', icon: Briefcase, label: 'Work & Projects' },
+  { to: '/timeline', icon: Clock, label: 'Daily Timeline' },
   { to: '/audit', icon: BookOpen, label: 'Integral Audit' },
   { to: '/finances', icon: DollarSign, label: 'Finances' },
   { to: '/vision', icon: Image, label: 'Vision Board' },

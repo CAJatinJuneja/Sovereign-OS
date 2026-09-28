@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { usePersistentStore } from '../hooks/usePersistentStore';
 import { BookOpen, Heart } from 'lucide-react';
+import { todayKey } from '../lib/date';
 
 const STEPS = ['Body', 'Mind', 'Spirit', 'Shadow'];
 
 export default function IntegralAudit() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayKey();
   const [step, setStep] = useState(0);
   const [entry, setEntry] = usePersistentStore('audit-' + today, {
     bedTime: '', wakeTime: '', energy: 5, morningProtocol: false,

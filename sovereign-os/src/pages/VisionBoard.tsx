@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { imageStore } from '../lib/imageStore';
 import { Plus, Trash2, Image } from 'lucide-react';
 
@@ -6,10 +6,13 @@ type ImageItem = { id: string; url: string };
 
 export default function VisionBoard() {
   const [images, setImages] = useState<ImageItem[]>([]);
+  const imagesRef = useRef<ImageItem[]>([]);
+
+  useEffect(() => { imagesRef.current = images; }, [images]);
 
   useEffect(() => {
     loadImages();
-    return () => images.forEach(img => imageStore.revokeObjectURL(img.url));
+    return () => imagesRef.current.forEach(img => imageStore.revokeObjectURL(img.url));
   }, []);
 
   const loadImages = async () => {

@@ -3,33 +3,24 @@ import { usePersistentStore } from '../hooks/usePersistentStore';
 import { Link } from 'react-router-dom';
 import { Check, Smile, PenLine, Flame, TrendingUp } from 'lucide-react';
 import { MOOD_OPTIONS } from '../lib/journalPrompts';
+import { getLatestJournalEntryForDate, hasJournalEntry } from '../lib/journalStore';
+import { todayKey, toDateKey } from '../lib/date';
 
 export default function Dashboard() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayKey();
   const [completed, setCompleted] = usePersistentStore<boolean>(`completed-${today}`, false);
   const [mood, setMood] = usePersistentStore<number>(`mood-${today}`, 5);
 
   // Journal snapshot
-  const todayJournal = useMemo(() => {
-    try {
-      const raw = localStorage.getItem(`journal-${today}`);
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
-  }, [today]);
+  const todayJournal = useMemo(() => getLatestJournalEntryForDate(today), [today]);
 
   // Journaling streak
   const streak = useMemo(() => {
     let count = 0;
     const d = new Date();
     for (let i = 0; i < 365; i++) {
-      const key = `journal-${d.toISOString().split('T')[0]}`;
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        try {
-          const data = JSON.parse(raw);
-          if (data.content || data.mood) { count++; } else { break; }
-        } catch { break; }
-      } else if (i > 0) { break; }
+      const key = toDateKey(d);
+      if (hasJournalEntry(key)) { count++; } else if (i > 0) { break; }
       d.setDate(d.getDate() - 1);
     }
     return count;
@@ -38,17 +29,10 @@ export default function Dashboard() {
   // Habit heatmap (last 30 days)
   const last30Days = Array.from({ length: 30 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (29 - i));
-    return d.toISOString().split('T')[0];
+    return toDateKey(d);
   });
 
-  const hasJournal = (date: string) => {
-    try {
-      const raw = localStorage.getItem(`journal-${date}`);
-      if (!raw) return false;
-      const data = JSON.parse(raw);
-      return !!(data.content || data.mood);
-    } catch { return false; }
-  };
+  const hasJournal = (date: string) => hasJournalEntry(date);
 
   const moodEmoji = todayJournal?.mood ? MOOD_OPTIONS.find(m => m.value === todayJournal.mood)?.emoji : null;
 

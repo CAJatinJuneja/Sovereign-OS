@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePersistentStore } from '../hooks/usePersistentStore';
 import { Sparkles, Plus, Play, Pause, RotateCcw, Flame, Trash2, Sun, Moon, Check, Heart, BookOpen, Calendar, Clock } from 'lucide-react';
+import { todayKey, toDateKey } from '../lib/date';
 
 // ── Types ──
 type Affirmation = {
@@ -106,12 +107,13 @@ export default function NeuroAffirmations() {
   const [timeLeft, setTimeLeft] = useState(120);
   const [timerRunning, setTimerRunning] = useState(false);
   const [libraryCategory, setLibraryCategory] = useState<AffirmationCategory | 'All'>('All');
+  const [audioError, setAudioError] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const oscRef = useRef<OscillatorNode | null>(null);
   const gainRef = useRef<GainNode | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayKey();
   const todayRecord = streaks.find(s => s.date === today) || { date: today, morning: false, evening: false };
   const isAm = new Date().getHours() < 12;
   const dailyProgress = (todayRecord.morning ? 50 : 0) + (todayRecord.evening ? 50 : 0);
@@ -120,7 +122,7 @@ export default function NeuroAffirmations() {
     let count = 0;
     const d = new Date();
     for (let i = 0; i < 365; i++) {
-      const key = d.toISOString().split('T')[0];
+      const key = toDateKey(d);
       const rec = streaks.find(s => s.date === key);
       if (rec && rec.morning && rec.evening) { count++; } else if (i > 0) break;
       d.setDate(d.getDate() - 1);
@@ -159,7 +161,10 @@ export default function NeuroAffirmations() {
       gain.gain.value = 0.08;
       osc.connect(gain); gain.connect(ctx.destination); osc.start();
       audioCtxRef.current = ctx; oscRef.current = osc; gainRef.current = gain;
-    } catch {}
+      setAudioError(false);
+    } catch {
+      setAudioError(true);
+    }
   }, []);
 
   const stopAudio = useCallback(() => {
@@ -258,6 +263,11 @@ export default function NeuroAffirmations() {
             <button onClick={resetTimer} className="btn-ghost flex items-center gap-2"><RotateCcw size={16}/> Reset</button>
             <button onClick={() => { stopAudio(); setTimerRunning(false); setView('list'); }} className="btn-ghost">Back</button>
           </div>
+          {audioError && (
+            <p className="text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
+              Audio tone unavailable in this browser — the timer still works fine.
+            </p>
+          )}
         </div>
       </div>
     );

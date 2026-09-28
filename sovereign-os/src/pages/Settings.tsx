@@ -1,18 +1,43 @@
 import React from 'react';
 import { Download, Upload, Trash2, Settings as SettingsIcon, Shield } from 'lucide-react';
+import { imageStore } from '../lib/imageStore';
+import { todayKey } from '../lib/date';
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
+  const res = await fetch(dataUrl);
+  return res.blob();
+}
 
 export default function Settings() {
-  const exportData = () => {
+  const exportData = async () => {
     const data: Record<string, any> = {};
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key) data[key] = JSON.parse(localStorage.getItem(key)!);
     }
+
+    const imageIds = await imageStore.getAllKeys();
+    const visionImages: { id: string; dataUrl: string }[] = [];
+    for (const id of imageIds) {
+      const blob = await imageStore.get(id);
+      if (blob) visionImages.push({ id, dataUrl: await blobToDataUrl(blob) });
+    }
+    data.__visionImages = visionImages;
+
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'sovereign-os-backup-' + new Date().toISOString().split('T')[0] + '.json';
+    a.download = 'sovereign-os-backup-' + todayKey() + '.json';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -21,10 +46,19 @@ export default function Settings() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const data = JSON.parse(reader.result as string);
-        Object.entries(data).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
+        const { __visionImages, ...rest } = data;
+        Object.entries(rest).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
+
+        if (Array.isArray(__visionImages)) {
+          for (const img of __visionImages) {
+            const blob = await dataUrlToBlob(img.dataUrl);
+            await imageStore.save(img.id, blob);
+          }
+        }
+
         alert('Data imported successfully! Refreshing...');
         window.location.reload();
       } catch { alert('Failed to import data.'); }
@@ -32,9 +66,10 @@ export default function Settings() {
     reader.readAsText(file);
   };
 
-  const clearAllData = () => {
+  const clearAllData = async () => {
     if (confirm('Are you sure? This will delete ALL your data!')) {
       localStorage.clear();
+      await imageStore.clearAll();
       window.location.reload();
     }
   };

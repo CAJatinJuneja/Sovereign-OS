@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { usePersistentStore } from '../hooks/usePersistentStore';
 import { Plus, Trash2, IndianRupee, TrendingUp, TrendingDown } from 'lucide-react';
-
-type Txn = { id: string; date: string; desc: string; amount: number; type: 'income' | 'expense' };
+import { todayKey } from '../lib/date';
+import type { Txn } from '../lib/types';
 
 const INR = '₹';
 
@@ -17,7 +17,7 @@ export default function Finances() {
 
   const addTxn = () => {
     if (!desc || !amt) return;
-    setTxns([...txns, { id: Date.now().toString(), date: new Date().toISOString().split('T')[0], desc, amount: Number(amt), type: typ }]);
+    setTxns([...txns, { id: crypto.randomUUID(), date: todayKey(), desc, amount: Number(amt), type: typ }]);
     setDesc(''); setAmt('');
   };
 

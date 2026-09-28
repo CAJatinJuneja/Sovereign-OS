@@ -2,18 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp, ArrowLeft, Search } from 'lucide-react';
 import { MOOD_OPTIONS } from '../lib/journalPrompts';
-
-interface StoredEntry {
-  date: string;
-  mood: number;
-  emotions: string[];
-  content: string;
-  tags: string[];
-  wordCount: number;
-  todaysWin: string;
-  gratitude: string[];
-  savedAt?: string;
-}
+import { getAllJournalEntries, type StoredJournalEntry } from '../lib/journalStore';
 
 export default function JournalHistory() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -26,22 +15,9 @@ export default function JournalHistory() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setRefreshKey(k => k + 1); }, []);
 
-  const entries = useMemo(() => {
-    const results: StoredEntry[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('journal-') && key !== 'journal-draft') {
-        try {
-          const data = JSON.parse(localStorage.getItem(key)!);
-          if (data && data.date && data.savedAt && (data.content || data.mood)) {
-            results.push(data);
-          }
-        } catch { /* skip */ }
-      }
-    }
-    return results.sort((a, b) => (b.savedAt || b.date).localeCompare(a.savedAt || a.date));
+  const entries: StoredJournalEntry[] = useMemo(() => getAllJournalEntries(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey]);
+    [refreshKey]);
 
   const filtered = entries.filter(e => {
     if (filterTag && !e.tags?.includes(filterTag)) return false;
