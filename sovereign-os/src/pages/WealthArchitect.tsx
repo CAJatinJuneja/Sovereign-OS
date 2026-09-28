@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { usePersistentStore } from '../hooks/usePersistentStore';
-import { Landmark, Plus, Trash2, AlertCircle, Building2, ShoppingBag, IndianRupee, Shield, TrendingUp, Clock3 } from 'lucide-react';
+import { Landmark, Plus, Trash2, AlertCircle, Building2, ShoppingBag, IndianRupee, Shield, TrendingUp, Clock3, Repeat } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { todayKey } from '../lib/date';
+import { todayKey, todayMonthKey, monthsBetween } from '../lib/date';
 import type { Txn } from '../lib/types';
 
 type Liability = { id: string; name: string; totalAmount: number; interestRate: number; emiAmount: number; remainingMonths: number; dueDay: number };
@@ -12,10 +12,16 @@ type HorizonBucket = 'Safety Net' | 'Short Term' | 'Long Term';
 type Investment = { id: string; name: string; category: InvestmentCategory; value: number; horizon: HorizonBucket };
 type SplitEntry = { id: string; person: string; amount: number; type: 'receivable' | 'payable'; note: string };
 type Expense = { id: string; date: string; desc: string; amount: number; category: string };
+type RecurringCategory = 'Rent' | 'EMI' | 'Helper Salary' | 'Other';
+type RecurringEntry = {
+  id: string; label: string; category: RecurringCategory; amount: number; dueDay: number;
+  startMonth: string; durationMonths: number; lastPostedMonth: string;
+};
 
 const CATEGORIES = ['Food', 'Travel', 'Medical', 'Shopping', 'Bills', 'Education', 'Other'];
 const INVESTMENT_CATEGORIES: InvestmentCategory[] = ['Equity', 'Mutual Fund', 'Fixed Deposit', 'Other'];
 const HORIZONS: HorizonBucket[] = ['Safety Net', 'Short Term', 'Long Term'];
+const RECURRING_CATEGORIES: RecurringCategory[] = ['Rent', 'EMI', 'Helper Salary', 'Other'];
 const HORIZON_HINT: Record<HorizonBucket, string> = {
   'Safety Net': '6 months of expenses, kept liquid',
   'Short Term': '6 months – 3 years',
@@ -49,8 +55,9 @@ export default function WealthArchitect() {
   const [investments, setInvestments] = usePersistentStore<Investment[]>('wealth-investments', []);
   const [splits, setSplits] = usePersistentStore<SplitEntry[]>('wealth-split', []);
   const [expenses, setExpenses] = usePersistentStore<Expense[]>('wealth-expenses', []);
+  const [recurring, setRecurring] = usePersistentStore<RecurringEntry[]>('wealth-recurring', []);
   const [financeTxns] = usePersistentStore<Txn[]>('finance-txns', []);
-  const [tab, setTab] = useState<'overview' | 'accounts' | 'investments' | 'splitwise' | 'liabilities' | 'expenses'>('overview');
+  const [tab, setTab] = useState<'overview' | 'accounts' | 'investments' | 'splitwise' | 'liabilities' | 'recurring' | 'expenses'>('overview');
 
   // Form states
   const [lName, setLName] = useState(''); const [lTotal, setLTotal] = useState('');
@@ -64,6 +71,9 @@ export default function WealthArchitect() {
   const [spType, setSpType] = useState<'receivable' | 'payable'>('receivable'); const [spNote, setSpNote] = useState('');
   const [eDesc, setEDesc] = useState(''); const [eAmt, setEAmt] = useState('');
   const [eCat, setECat] = useState('Other');
+  const [rcCategory, setRcCategory] = useState<RecurringCategory>('Rent');
+  const [rcLabel, setRcLabel] = useState(''); const [rcAmount, setRcAmount] = useState('');
+  const [rcDueDay, setRcDueDay] = useState('1'); const [rcDuration, setRcDuration] = useState('');
 
   const today = todayKey();
   const totalBankBalance = accounts.reduce((a, x) => a + x.currentBalance, 0);
@@ -139,6 +149,33 @@ export default function WealthArchitect() {
     setEDesc(''); setEAmt('');
   };
 
+  const addRecurring = () => {
+    if (!rcLabel || !rcAmount) return;
+    setRecurring([...recurring, {
+      id: crypto.randomUUID(), label: rcLabel, category: rcCategory, amount: Number(rcAmount),
+      dueDay: Number(rcDueDay) || 1, startMonth: todayMonthKey(), durationMonths: Number(rcDuration) || 0,
+      lastPostedMonth: '',
+    }]);
+    setRcLabel(''); setRcAmount(''); setRcDueDay('1'); setRcDuration('');
+  };
+
+  // Auto-post this month's occurrence of each active recurring entry (checked whenever the app is opened)
+  useEffect(() => {
+    const thisMonth = todayMonthKey();
+    const due = recurring.filter(r => {
+      if (r.lastPostedMonth === thisMonth) return false;
+      if (r.durationMonths > 0 && monthsBetween(r.startMonth, thisMonth) >= r.durationMonths) return false;
+      return true;
+    });
+    if (due.length === 0) return;
+    setExpenses(prev => [
+      ...prev,
+      ...due.map(r => ({ id: crypto.randomUUID(), date: todayKey(), desc: r.label, amount: r.amount, category: r.category })),
+    ]);
+    setRecurring(prev => prev.map(r => due.some(d => d.id === r.id) ? { ...r, lastPostedMonth: thisMonth } : r));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recurring]);
+
   return (
     <div className="animate-fadeIn">
       <div className="flex items-center justify-between mb-8">
@@ -176,7 +213,7 @@ export default function WealthArchitect() {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
-        {(['overview', 'accounts', 'investments', 'splitwise', 'liabilities', 'expenses'] as const).map(t => (
+        {(['overview', 'accounts', 'investments', 'splitwise', 'liabilities', 'recurring', 'expenses'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)} className={`tab-btn ${tab === t ? 'active' : ''}`}>
             {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
@@ -518,6 +555,56 @@ export default function WealthArchitect() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {tab === 'recurring' && (
+        <div>
+          <div className="glass-card p-6 mb-6">
+            <div className="section-label">Add Recurring Monthly Entry</div>
+            <div className="flex flex-wrap gap-4 mt-3 items-end">
+              <select value={rcCategory} onChange={e => setRcCategory(e.target.value as RecurringCategory)} className="input-glass" style={{ width: 'auto' }}>
+                {RECURRING_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <input value={rcLabel} onChange={e => setRcLabel(e.target.value)} placeholder={`e.g., ${rcCategory === 'EMI' ? 'Home Loan EMI' : rcCategory === 'Helper Salary' ? 'Maid & Cook Salary' : rcCategory === 'Rent' ? 'Apartment Rent' : 'Custom label'}`} className="input-glass flex-1 min-w-[160px]" />
+              <input type="number" value={rcAmount} onChange={e => setRcAmount(e.target.value)} placeholder="Amount" className="input-glass w-28" />
+              <input type="number" value={rcDueDay} onChange={e => setRcDueDay(e.target.value)} placeholder="Due Day (1-31)" className="input-glass w-32" />
+              <input type="number" value={rcDuration} onChange={e => setRcDuration(e.target.value)} placeholder="Months (blank = ongoing)" className="input-glass w-44" />
+              <button onClick={addRecurring} className="btn-primary flex items-center gap-2"><Plus size={18}/> Add</button>
+            </div>
+            <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
+              Each entry is auto-added to your Expenses log for the current month the next time you open this page. Use "Months" for things like an EMI that should stop after N months — leave it blank for ongoing items like Rent or Helper Salary.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {recurring.map(r => {
+              const elapsed = monthsBetween(r.startMonth, todayMonthKey()) + (r.lastPostedMonth ? 1 : 0);
+              const finished = r.durationMonths > 0 && elapsed >= r.durationMonths;
+              return (
+                <div key={r.id} className="glass-card p-5 flex justify-between items-center" style={{ opacity: finished ? 0.5 : 1 }}>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="category-chip active text-xs">{r.category}</span>
+                      <h3 className="font-semibold">{r.label}</h3>
+                    </div>
+                    <div className="flex gap-6 mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
+                      <span>{INR}{r.amount.toLocaleString('en-IN')} / month</span>
+                      <span>Due day {r.dueDay}</span>
+                      <span>{finished ? 'Finished' : r.durationMonths > 0 ? `Month ${Math.min(elapsed, r.durationMonths)} of ${r.durationMonths}` : 'Ongoing'}</span>
+                    </div>
+                  </div>
+                  <button onClick={() => setRecurring(recurring.filter(x => x.id !== r.id))}
+                    style={{ color: 'var(--accent-rose)' }} className="hover:opacity-70 p-1" title="Stop recurring entry"><Trash2 size={16}/></button>
+                </div>
+              );
+            })}
+            {recurring.length === 0 && (
+              <div className="glass-card text-center py-12">
+                <Repeat size={40} style={{ color: 'var(--accent-primary)', margin: '0 auto 1rem' }} />
+                <p style={{ color: 'var(--text-muted)' }}>No recurring entries yet. Add rent, EMI, or salaries above.</p>
+              </div>
+            )}
           </div>
         </div>
       )}

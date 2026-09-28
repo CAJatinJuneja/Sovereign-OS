@@ -8,3 +8,17 @@ export function toDateKey(d: Date): string {
 export function todayKey(): string {
   return toDateKey(new Date());
 }
+
+export function monthKey(dateKey: string): string {
+  return dateKey.slice(0, 7);
+}
+
+export function todayMonthKey(): string {
+  return monthKey(todayKey());
+}
+
+export function monthsBetween(startMonth: string, endMonth: string): number {
+  const [sy, sm] = startMonth.split('-').map(Number);
+  const [ey, em] = endMonth.split('-').map(Number);
+  return (ey - sy) * 12 + (em - sm);
+}
