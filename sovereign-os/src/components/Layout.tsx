@@ -1,5 +1,6 @@
-import { NavLink, Outlet } from 'react-router-dom';
-import { Home, PenLine, Briefcase, BookOpen, DollarSign, Image, Target, Settings, Clock, Sparkles, Rocket, Landmark, LogOut } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Home, PenLine, Briefcase, BookOpen, DollarSign, Image, Target, Settings, Clock, Sparkles, Rocket, Landmark, LogOut, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const navItems = [
@@ -39,19 +40,47 @@ function navClass(isActive: boolean) {
 
 export default function Layout() {
   const { session, signOut } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   return (
     <div className="min-h-screen flex">
-      <aside className="w-64 fixed h-full flex flex-col justify-between"
+      {/* Mobile top bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3"
+        style={{
+          background: 'rgba(10, 14, 26, 0.92)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+        }}>
+        <h1 className="text-lg font-bold gradient-text">Sovereign OS</h1>
+        <button onClick={() => setMobileOpen(true)} style={{ color: 'var(--text-secondary)' }}>
+          <Menu size={22} />
+        </button>
+      </div>
+
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setMobileOpen(false)} />
+      )}
+
+      <aside
+        className={`w-64 fixed h-full flex flex-col justify-between z-50 transition-transform duration-300 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={{
           background: 'rgba(10, 14, 26, 0.85)',
           backdropFilter: 'blur(20px)',
           borderRight: '1px solid rgba(255,255,255,0.06)',
         }}>
         <div>
-          <div className="px-6 pt-7 pb-2">
-            <h1 className="text-xl font-bold gradient-text">Sovereign OS</h1>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{getGreeting()}</p>
+          <div className="px-6 pt-7 pb-2 flex items-start justify-between">
+            <div>
+              <h1 className="text-xl font-bold gradient-text">Sovereign OS</h1>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{getGreeting()}</p>
+            </div>
+            <button className="md:hidden p-1" onClick={() => setMobileOpen(false)} style={{ color: 'var(--text-muted)' }}>
+              <X size={20} />
+            </button>
           </div>
           <nav className="flex flex-col gap-0.5 px-3 mt-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 140px)' }}>
             {navItems.map(({ to, icon: Icon, label }) => (
@@ -82,7 +111,7 @@ export default function Layout() {
           )}
         </div>
       </aside>
-      <main className="ml-64 flex-1 p-8 min-h-screen">
+      <main className="flex-1 min-h-screen md:ml-64 px-4 pb-8 pt-20 md:px-8 md:pt-8">
         <Outlet />
       </main>
     </div>
